@@ -3,7 +3,8 @@
 To install dependencies:
 
 ```bash
-bun install
+# bun install
+npm install 
 ```
 
 To run:

@@ -1,5 +1,6 @@
 import { makeExecutableSchema } from '@graphql-tools/schema'
 import { compileQuery, isCompiledQuery } from 'graphql-jit'
+import { parse } from 'graphql'
 
 const typeDefs = `
 type Query {
@@ -21,7 +22,6 @@ const query = `
   hello
 }
 `
-const { parse } = require('graphql')
 const document = parse(query)
 
 const compiledQuery = compileQuery(schema, document)
