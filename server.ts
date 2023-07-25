@@ -10,39 +10,48 @@ type Query {
 const resolvers = {
   Query: {
     hello() {
-      return new Promise((resolve) => setTimeout(() => resolve('World!'), 200))
+      return new Promise((resolve) => resolve('hello World!'))
     }
   }
 }
 
 const schema = makeExecutableSchema({ typeDefs, resolvers })
 
-const query = `
-{
-  hello
-}
-`
-const document = parse(query)
+const queryCache = new Map()
 
-const compiledQuery = compileQuery(schema, document)
-// check if the compilation is successful
+const server = Bun.serve({
+  port: 3000,
+  development: true,
+  async fetch(request) {
+    if (request.method === 'POST') {
+      const body = (await request.json()) as {
+        query: string
+        variables?: Record<string, any>
+      }
+      console.log('request:', body)
 
-if (!isCompiledQuery(compiledQuery)) {
-  console.error(compiledQuery)
-  throw new Error('Error compiling query')
-}
+      let compiledQuery = queryCache.get(body.query)
 
-const executionResult = await compiledQuery.query({}, {}, {})
-console.log(executionResult)
+      if (!compiledQuery) {
+        const document = parse(body.query)
 
-// const server = Bun.serve({
-//   port: 3000,
-//   development: true,
-//   async fetch(request) {
-//     const body = request.body
+        compiledQuery = compileQuery(schema, document)
+        // check if the compilation is successful
 
-//     return new Response('Welcome to Bun!')
-//   }
-// })
+        if (!isCompiledQuery(compiledQuery)) {
+          console.error(compiledQuery)
+          throw new Error('Error compiling query')
+        }
+      }
 
-// console.log(`Listening on http://localhost:${server.port}`)
+      const executionResult = await compiledQuery.query({}, {}, body.variables)
+      return new Response(JSON.stringify(executionResult))
+    }
+
+    return new Response('404', {
+      status: 404
+    })
+  }
+})
+
+console.log(`Listening on http://localhost:${server.port}`)
